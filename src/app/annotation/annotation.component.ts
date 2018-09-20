@@ -3,10 +3,10 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../shared/security/auth.service';
-import { Doc } from '../shared/document.model'
-import { Project } from '../shared/project.model'
+import { Doc } from '../shared/document.model';
+import { Project } from '../shared/project.model';
 import { AnnotationService } from './annotation.service';
-import { ProjectService } from '../components/project/project.service'
+import { ProjectService } from '../components/project/project.service';
 import {
   AngularFirestore,
   AngularFirestoreCollection,
@@ -15,24 +15,25 @@ import {
 import { Observable } from 'rxjs/Observable';
 import * as firebase from 'firebase';
 
-
 @Component({
   selector: 'app-annotation',
   templateUrl: './annotation.component.html',
   styleUrls: ['./annotation.component.scss']
 })
-
-export class AnnotationComponent implements OnInit, OnDestroy {
+export class AnnotationComponent implements OnInit {
   private sub: any;
   currentDoc: Doc;
   categories: string[];
   currentProjectTitle: string;
-  isConnected: boolean = false;;
+  isConnected = false;
 
-  constructor(private authService: AuthService, private activeRouter: ActivatedRoute, private router: Router,
-    /*private as: AnnotationService,*/ private ps: ProjectService, private afs: AngularFirestore) {
-
-  }
+  constructor(
+    private authService: AuthService,
+    private activeRouter: ActivatedRoute,
+    private router: Router,
+    /*private as: AnnotationService,*/ private ps: ProjectService,
+    private afs: AngularFirestore
+  ) {}
 
   ngOnInit() {
     this.isConnected = this.authService.isConnected();
@@ -41,18 +42,26 @@ export class AnnotationComponent implements OnInit, OnDestroy {
       this.currentProjectTitle = params.projectTitle;
 
       // Charge les catégories du projet
-      var projectRef = this.afs.collection<Project>('Projects').doc(params.projectId);
-      projectRef.ref.get().then( (documentSnapshot) => {
+      const projectRef = this.afs
+        .collection<Project>('Projects')
+        .doc(params.projectId);
+      projectRef.ref.get().then(documentSnapshot => {
         this.categories = documentSnapshot.data().categories;
       });
     });
 
     // Charge les catégories du projet
-    //this.categories = this.ps.getCategories(this.currentDoc.projectId);
+    // this.categories = this.ps.getCategories(this.currentDoc.projectId);
 
     // Télécharge le fichier choisi
-    firebase.storage().ref().child('Projects/' + this.currentDoc.documentId + '/' + this.currentDoc.title).getDownloadURL().
-      then(url => {
+    firebase
+      .storage()
+      .ref()
+      .child(
+        'Projects/' + this.currentDoc.documentId + '/' + this.currentDoc.title
+      )
+      .getDownloadURL()
+      .then(url => {
         const xhr = new XMLHttpRequest();
         xhr.responseType = 'blob';
         xhr.onload = event => {
@@ -69,26 +78,25 @@ export class AnnotationComponent implements OnInit, OnDestroy {
         };
         xhr.open('GET', url);
         xhr.send();
-      }).catch(error => {
+      })
+      .catch(error => {
         console.log(error);
       });
   }
 
-  ngOnDestroy() {
-    this.sub.unsubscribe;
-  }
-
   Categoriser(couleur: string) {
-
     let sel, range, ceci;
     if (window.getSelection) {
       sel = window.getSelection();
 
       if (sel.getRangeAt && sel.rangeCount) {
-        if (sel.getRangeAt(0).commonAncestorContainer.parentNode.id === 'myText' ||
-          sel.getRangeAt(0).commonAncestorContainer.parentNode.parentNode.id === 'myText'
-        || sel.getRangeAt(0).commonAncestorContainer.id === 'myText') {
-
+        if (
+          sel.getRangeAt(0).commonAncestorContainer.parentNode.id ===
+            'myText' ||
+          sel.getRangeAt(0).commonAncestorContainer.parentNode.parentNode.id ===
+            'myText' ||
+          sel.getRangeAt(0).commonAncestorContainer.id === 'myText'
+        ) {
           console.log('mytext');
           if (couleur !== 'Delete') {
             range = sel.getRangeAt(0);
@@ -101,25 +109,32 @@ export class AnnotationComponent implements OnInit, OnDestroy {
 
             range.deleteContents();
 
-            if (sel.getRangeAt(0).commonAncestorContainer.parentNode.id !== 'myText' &&
-            sel.getRangeAt(0).commonAncestorContainer.id !== 'myText') {
-              range.commonAncestorContainer.parentNode.parentNode
-                .removeChild(range.commonAncestorContainer.parentNode);
+            if (
+              sel.getRangeAt(0).commonAncestorContainer.parentNode.id !==
+                'myText' &&
+              sel.getRangeAt(0).commonAncestorContainer.id !== 'myText'
+            ) {
+              range.commonAncestorContainer.parentNode.parentNode.removeChild(
+                range.commonAncestorContainer.parentNode
+              );
             }
 
             range.insertNode(newSpan);
-
           } else if (couleur === 'Delete') {
             range = window.getSelection().getRangeAt(0);
             console.log('2. delete');
 
-            const html = range.cloneContents().textContent
+            const html = range.cloneContents().textContent;
             range.deleteContents();
 
-            if (sel.getRangeAt(0).commonAncestorContainer.parentNode.id !== 'myText' &&
-            sel.getRangeAt(0).commonAncestorContainer.id !== 'myText') {
-              range.commonAncestorContainer.parentNode.parentNode
-                .removeChild(range.commonAncestorContainer.parentNode);
+            if (
+              sel.getRangeAt(0).commonAncestorContainer.parentNode.id !==
+                'myText' &&
+              sel.getRangeAt(0).commonAncestorContainer.id !== 'myText'
+            ) {
+              range.commonAncestorContainer.parentNode.parentNode.removeChild(
+                range.commonAncestorContainer.parentNode
+              );
             }
 
             const el = document.createElement('div');
@@ -130,7 +145,6 @@ export class AnnotationComponent implements OnInit, OnDestroy {
               lastNode = frag.appendChild(ceci);
             }
             range.insertNode(frag);
-
           }
         }
       }
@@ -139,11 +153,16 @@ export class AnnotationComponent implements OnInit, OnDestroy {
 
   saveTextModification() {
     const data = document.getElementById('myText').innerHTML;
-    const thefile = new File([data], this.currentDoc.title)
+    const thefile = new File([data], this.currentDoc.title);
 
-    firebase.storage().ref().child('Projects/' + this.currentDoc.documentId + '/' + this.currentDoc.title).put(thefile);
+    firebase
+      .storage()
+      .ref()
+      .child(
+        'Projects/' + this.currentDoc.documentId + '/' + this.currentDoc.title
+      )
+      .put(thefile);
 
     alert('Annotation saved');
   }
-
 }
